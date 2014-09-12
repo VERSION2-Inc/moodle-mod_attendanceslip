@@ -14,6 +14,8 @@
 
     require_login($course->id);
 
+    $PAGE->set_url('/mod/attendanceslip/attendanceslip.php', array('id' => $id));
+
     $context = context_module::instance($cm->id);
 
     if (!has_capability('mod/attendanceslip:teacher', $context) && !has_capability('mod/attendanceslip:student', $context)) {
@@ -23,6 +25,9 @@
     if (! $attendanceslip = $DB->get_record("attendanceslip", array("id" => $cm->instance))) {
         error("Course module is incorrect");
     }
+
+    $PAGE->set_title($course->shortname . ': ' . format_string($attendanceslip->name));
+    $PAGE->set_heading($course->fullname);
 
     $entry = $DB->get_record("attendanceslip_entries", array("userid" => $USER->id, "attendanceslip" => $attendanceslip->id));
 
@@ -58,7 +63,7 @@
 			//OK
 		}
 
-		if ( $entry->password && ($entry->password != $form->password) ) {
+		if ( !empty($entry->password) && ($entry->password != $form->password) ) {
 			//attendanceslip existed
 			echo "<div onClick=\"history.back();\" align=\"center\" style=\"cursor:hand;\"><font color=blue><b><u>".get_string("return", "attendanceslip")."</u></b></font></div>";
 			error(get_string("notexistpassword", "attendanceslip"));
@@ -69,13 +74,18 @@
 		$newentry = new StdClass;
 
 		if ($entry) {
-			$newentry->id = $entry->id;
+			$newentry = clone $entry;
 			$newentry->password = $form->password;
 			$newentry->modified = $timenow;
 			if (! $DB->update_record("attendanceslip_entries", $newentry)) {
 				error("Could not update your attendanceslip");
 			}
-			add_to_log($course->id, "attendanceslip", "update entry", "view.php?id=$cm->id", "$newentry->id", $cm->id);
+            $event = \mod_attendanceslip\event\entry_updated::create(array(
+                'context' => $context,
+                'objectid' => $newentry->id
+            ));
+            $event->add_record_snapshot('attendanceslip_entries', $newentry);
+            $event->trigger();
 		} else {
 			$newentry->userid = $USER->id;
 			$newentry->attendanceslip = $attendanceslip->id;
@@ -84,7 +94,12 @@
 			if (! $newentry->id = $DB->insert_record("attendanceslip_entries", $newentry)) {
 				error("Could not insert a new attendanceslip entry");
 			}
-			add_to_log($course->id, "attendanceslip", "add entry", "view.php?id=$cm->id", "$newentry->id", $cm->id);
+            $event = \mod_attendanceslip\event\entry_created::create(array(
+                'context' => $context,
+                'objectid' => $newentry->id
+            ));
+            $event->add_record_snapshot('attendanceslip_entries', $newentry);
+            $event->trigger();
 		}
 
 		if ( !($form->password) ) {

@@ -33,7 +33,13 @@
     }
 
 
-    add_to_log($course->id, "attendanceslip", "view", "attendanceslip.php?id=$id", "$cm->instance");
+    $event = \mod_attendanceslip\event\attendanceslip_viewed::create(array(
+        'context' => $context,
+        'objectid' => $attendanceslip->id
+    ));
+    $event->add_record_snapshot('course', $course);
+    $event->add_record_snapshot('attendanceslip', $attendanceslip);
+    $event->trigger();
 
 // Initialize $PAGE, compute blocks
     $PAGE->set_url('/mod/attendanceslip/attendanceslip.php', array('id' => $id));
