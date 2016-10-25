@@ -6,5 +6,8 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 // Original version: 2012030700
-$module->version  = 2014091200;  // The current module version (Date: YYYYMMDDXX)
-$module->cron     = 0;           // Period for cron to check this module (secs)
+defined('MOODLE_INTERNAL') || die();
+
+$plugin->component = 'mod_attendanceslip'; // Full name of the plugin (used for diagnostics).
+$plugin->version  = 2014091200;  // The current module version (Date: YYYYMMDDXX)
+$plugin->cron     = 0;           // Period for cron to check this module (secs)
